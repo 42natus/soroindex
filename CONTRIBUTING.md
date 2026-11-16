@@ -4,7 +4,7 @@ Thanks for helping. This page covers setup, the checks your change must pass, ho
 
 ## Setup
 
-You need Go 1.27.3. `go.mod` pins it with `toolchain go1.27.3`, so an older supported Go can download it automatically. Nothing else is needed for normal work: no CGO, no Rust, no database server.
+You need Go 1.27.4. `go.mod` pins it with `toolchain go1.27.4`, so an older supported Go can download it automatically. Nothing else is needed for normal work: no CGO, no Rust, no database server.
 
 ```sh
 git clone https://github.com/Soroban-CII/soroindex
@@ -59,8 +59,10 @@ The required checks are `lint`, `test`, `fuzz-smoke` and `build`. Security and d
 
 Issues open for [Stellar Wave](https://www.drips.network/wave/stellar) contributors carry the label **`Stellar Wave`**, plus:
 
-- a difficulty: `difficulty/trivial`, `difficulty/medium` or `difficulty/high`;
-- an area: `area/parser`, `area/sync`, `area/api`, `area/cli`, `area/rules`, `area/docs`, `area/infra`.
+- a complexity, which sets the Wave points: `complexity:trivial` (100 points), `complexity:medium` (150) or `complexity:high` (200). Trivial issues also carry `good first issue`;
+- an area: `area:parser`, `area:rules`, `area:sync`, `area:store`, `area:api`, `area:cli`, `area:reports`, `area:docs`, `area:tooling`, `area:security`.
+
+Each issue body ends with its complexity and points, for example **Complexity: High (200 points)**.
 
 To take one, comment on the issue and wait for a maintainer to assign it to you; one assignee per issue. Each issue lists acceptance criteria as checkboxes; a pull request should tick all of them, link the issue, and pass CI. Maintainers review Wave pull requests within 48 hours.
 
@@ -78,13 +80,14 @@ A new or changed `rules/sep-NNNN.json`:
 ## Versions
 
 Baseline checked on 7 October 2026. Go was refreshed on 26 October 2026 to
-1.27.3 after the release scan found GO-2026-6809 in 1.27.2. The official release
-checksum and Docker image index were verified. The language floor is unchanged.
+1.27.3 after the release scan found GO-2026-6809 in 1.27.2, and on 16 November 2026
+to 1.27.4 after the security workflow found GO-2026-6859 (net/http MaxBytesReader
+header race) in 1.27.3. The Docker image index digest was verified each time. The language floor is unchanged.
 A bump is its own commit, with a test run.
 
 | Component | Version | Pinned in |
 | --- | --- | --- |
-| Go toolchain (build) | go1.27.3 | `go.mod` `toolchain`, `ci.yml`, `Dockerfile` |
+| Go toolchain (build) | go1.27.4 (GO-2026-6859 fixed; bumped 16 November 2026) | `go.mod` `toolchain`, `ci.yml`, `Dockerfile` |
 | Go language floor | 1.26 (the highest `go` directive in the dependency tree: modernc.org/sqlite v1.60.1) | `go.mod` `go` |
 | github.com/stellar/go-stellar-sdk | v0.8.0 (Protocol 30 XDR; bumped 8 November 2026 after testnet moved to Protocol 30) | `go.mod` |
 | modernc.org/sqlite | v1.60.1 | `go.mod` |
@@ -99,19 +102,23 @@ A bump is its own commit, with a test run.
 
 ## Wave backlog and operator tools
 
-`scripts/wave-issues.json` is the reviewed remaining-work list. The application
-summary is generated from that source. Preview with `DRY_RUN=1 ./scripts/create-issues.sh`;
-preview requires Python 3 and makes no GitHub calls. A maintainer creates the
-labels and issues with `./scripts/create-issues.sh` after reviewing the preview.
-Already-open or closed issues with identical titles are skipped. Do not add work
-already implemented or proposed changes that bypass the fixed API/schema review.
+`scripts/wave-issues.json` is the reviewed remaining-work list: every Wave issue with
+its complexity, area, acceptance criteria and GitHub issue number, plus the points
+budget it must add up to. The application summary is generated from that source.
+
+`./scripts/create-issues.sh` is a dry run by default: it validates the file (pointers
+exist, titles are unique, points equal the budget) and prints totals, with no GitHub
+calls. `--emit FILE` writes the rendered issue bodies. A maintainer publishes with
+`--create` (missing issues) or `--sync-existing` (re-style linked issues) after
+reviewing the dry run. Do not add work already implemented or proposed changes that
+bypass the fixed API/schema review.
 
 Preview settings with `DRY_RUN=1 ./scripts/repo-settings.sh`. Only the operator
 runs the actual settings script. Both scripts default to `Soroban-CII/soroindex`;
 `REPO=owner/name` overrides the target explicitly.
 
 Build local release archives with `./scripts/build-release.sh v0.1.0` after
-activating Go 1.27.3. This requires Bash, Python 3, Git and Go; it does not publish.
+activating Go 1.27.4. This requires Bash, Python 3, Git and Go; it does not publish.
 The archives include checksums, provenance and dependency license notices.
 `scripts/publish-release.sh` previews the publication sequence. Only the operator
 runs it with `--publish`, after merging and reviewing a clean `main`, configuring
