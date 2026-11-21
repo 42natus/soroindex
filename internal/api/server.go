@@ -86,6 +86,7 @@ func New(o Options) (*Server, error) {
 	s.mux.HandleFunc("GET /v1/wasm/{hash}", s.wasm)
 	s.mux.HandleFunc("GET /v1/seps", s.seps)
 	s.mux.HandleFunc("GET /v1/stats", s.stats)
+	s.mux.HandleFunc("GET /v1/stats/toolchains", s.toolchains)
 	s.mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, "not_found", "endpoint not found")
 	})
@@ -140,7 +141,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
-	if !s.limiter.allow(r.RemoteAddr, s.options.RateLimit, time.Now()) {
+	if !s.limiter.allowN(r.RemoteAddr, s.options.RateLimit, lookupCost(r.URL.Path, q), time.Now()) {
 		w.Header().Set("Retry-After", "60")
 		writeError(w, http.StatusTooManyRequests, "rate_limited", "request limit exceeded")
 		return
