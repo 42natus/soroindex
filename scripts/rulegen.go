@@ -1,3 +1,4 @@
+// Package rulegen generates rule files from SEP markdown specifications.
 package main
 
 import (
@@ -59,12 +60,12 @@ func main() {
 	}
 
 	// Read the markdown file.
-	f, err := os.Open(mdPath)
+	f, err := os.Open(mdPath) //nolint:gosec // mdPath is a trusted file path from command line
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "open %s: %v\n", mdPath, err)
 		os.Exit(1)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var builder strings.Builder
 	scanner := bufio.NewScanner(f)
@@ -170,7 +171,7 @@ func main() {
 
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
-	enc.Encode(ruleFile)
+	_ = enc.Encode(ruleFile)
 }
 
 func splitParams(s string) []string {
