@@ -39,15 +39,19 @@ func ReadCustomSectionsAt(r io.ReaderAt, size int64, names []string, lim Limits)
 	}
 	// From here size fits in an int: it is at most lim.MaxWasmBytes.
 	s := streamReader{r: r, size: int(size)}
+	// scratch holds the module header, then each section head and name
+	// length in turn. A slice passed to io.ReaderAt escapes to the heap, so
+	// one buffer reused for every small read keeps it to one allocation.
+	scratch := make([]byte, len(wasmHeader))
 
-	var hdr [8]byte // len(wasmHeader)
-	if s.size < len(hdr) {
+	if s.size < len(wasmHeader) {
 		return nil, ErrNotWasm
 	}
-	if err := s.readAt(hdr[:], 0); err != nil {
+	hdr := scratch[:len(wasmHeader)]
+	if err := s.readAt(hdr, 0); err != nil {
 		return nil, err
 	}
-	if !bytes.Equal(hdr[:], wasmHeader) {
+	if !bytes.Equal(hdr, wasmHeader) {
 		return nil, ErrNotWasm
 	}
 
@@ -61,7 +65,7 @@ func ReadCustomSectionsAt(r io.ReaderAt, size int64, names []string, lim Limits)
 	// nameBuf holds a candidate name: one no longer than the longest
 	// requested name. Longer names cannot match and are only validated.
 	nameBuf := make([]byte, maxName)
-	var chunk []byte // allocated on first use, for names longer than maxName
+	var chunk []byte // grown on demand, for names longer than maxName
 
 	off := len(hdr)
 	for count := 0; off < s.size; count++ {
@@ -70,12 +74,11 @@ func ReadCustomSectionsAt(r io.ReaderAt, size int64, names []string, lim Limits)
 		}
 		start := off
 		// The id byte and a LEB128 size: at most 1+5 bytes, fewer at the end.
-		var head [6]byte
-		n := min(len(head), s.size-off)
-		if err := s.readAt(head[:n], off); err != nil {
+		head := scratch[:min(6, s.size-off)]
+		if err := s.readAt(head, off); err != nil {
 			return nil, fmt.Errorf("section at offset %d: %w", start, err)
 		}
-		hr := reader{buf: head[:n]}
+		hr := reader{buf: head}
 		id, _ := hr.byte() // n >= 1 because off < s.size
 		plen, err := hr.u32()
 		if err != nil {
@@ -92,12 +95,11 @@ func ReadCustomSectionsAt(r io.ReaderAt, size int64, names []string, lim Limits)
 		}
 
 		// Custom section: a LEB128 name length, the name, then the body.
-		var lenBuf [5]byte
-		n = min(len(lenBuf), payloadEnd-payloadStart)
-		if err := s.readAt(lenBuf[:n], payloadStart); err != nil {
+		lenBuf := scratch[:min(5, payloadEnd-payloadStart)]
+		if err := s.readAt(lenBuf, payloadStart); err != nil {
 			return nil, fmt.Errorf("custom section name at offset %d: %w", start, err)
 		}
-		lr := reader{buf: lenBuf[:n]}
+		lr := reader{buf: lenBuf}
 		nlen, err := lr.u32()
 		if err != nil {
 			return nil, fmt.Errorf("custom section name at offset %d: %w", start, err)
@@ -122,8 +124,10 @@ func ReadCustomSectionsAt(r io.ReaderAt, size int64, names []string, lim Limits)
 				matched, name = true, string(nb)
 			}
 		} else {
-			if chunk == nil {
-				chunk = make([]byte, nameChunk+utf8.UTFMax-1)
+			// Sized to the name, up to nameChunk: real unrequested names,
+			// such as contractenvmetav0, are a few bytes long.
+			if want := min(int(nlen), nameChunk) + utf8.UTFMax - 1; len(chunk) < want {
+				chunk = make([]byte, want)
 			}
 			ok, err := s.validUTF8(chunk, nameStart, bodyStart)
 			if err != nil {
