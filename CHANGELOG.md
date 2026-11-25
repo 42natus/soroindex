@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add a conformance suite against stellar-cli 30.0.1 and the Python
+  stellar-sdk 17.0.1. `scripts/record-conformance.sh` records both tools'
+  output for every fixture and vector under `testdata/conformance/`, and
+  `TestConformanceWithStellarCLIAndPythonSDK` checks `pkg/sepmeta` against
+  it. The eight intentional differences are listed in `docs/how-it-works.md` (#63).
 - Add structure-aware fuzz targets `FuzzDecodeSpecStructured` and
   `FuzzDecodeMetaStructured`, which build valid spec and meta streams from
   fuzzer choices and check decode, re-encode, `Functions` and truncation
