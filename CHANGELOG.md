@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add structure-aware fuzz targets `FuzzDecodeSpecStructured` and
+  `FuzzDecodeMetaStructured`, which build valid spec and meta streams from
+  fuzzer choices and check decode, re-encode, `Functions` and truncation
+  invariants. `DecodeMeta` and `DecodeSpec` now report nesting past
+  `MaxXDRDepth` as `ErrLimit` rather than `ErrMalformed`, and no longer
+  misreport a cut entry as malformed under a small `MaxXDRDepth`, a bug the
+  new spec target found (#64).
 - Add `sepmeta.ReadCustomSectionsAt`, which reads custom sections from an
   `io.ReaderAt` without loading the module. It returns exactly what
   `ReadCustomSections` returns for the same bytes, checked by a differential

@@ -91,12 +91,20 @@ func decodeStream[T any](section []byte, lim Limits) ([]T, error) {
 // value that stops at a word boundary (a zero length, a zero discriminant,
 // an absent optional), while words that are wrong in themselves still fail.
 // Only the error path pays for this.
+//
+// The probe decodes at no less than the default MaxXDRDepth. Zero padding
+// can turn a shallow entry into a deeper one (a zero discriminant selects a
+// function entry, whose ScSymbol name sits a level below an enum's), so under
+// a small configured depth the probe itself would fail and a cut entry would
+// be misreported as malformed. The probe's input is still bounded by size.
 func completesWithPadding[T any](rest []byte, lim Limits) bool {
 	whole := len(rest) - len(rest)%4
 	padded := make([]byte, whole+lim.MaxSectionBytes)
 	copy(padded, rest[:whole])
+	probe := lim
+	probe.MaxXDRDepth = max(lim.MaxXDRDepth, DefaultLimits().MaxXDRDepth)
 	var v T
-	n, err := xdr.UnmarshalWithOptions(bytes.NewReader(padded), &v, decodeOptions(len(padded), lim))
+	n, err := xdr.UnmarshalWithOptions(bytes.NewReader(padded), &v, decodeOptions(len(padded), probe))
 	return err == nil && n > whole
 }
 
