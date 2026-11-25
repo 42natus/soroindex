@@ -245,8 +245,9 @@ func TestDecodeSpecErrors(t *testing.T) {
 			t.Fatalf("depth 64 under default limit: unexpected err %v", err)
 		}
 		_, err := DecodeSpec(in, Limits{MaxXDRDepth: 16})
-		if err == nil {
-			t.Fatal("depth 64 with MaxXDRDepth 16: want error, got nil")
+		var le *LimitError
+		if !errors.Is(err, ErrLimit) || !errors.As(err, &le) || le.Limit != "MaxXDRDepth" || le.Max != 16 {
+			t.Fatalf("depth 64 with MaxXDRDepth 16: err = %v, want ErrLimit naming MaxXDRDepth 16", err)
 		}
 	})
 }
