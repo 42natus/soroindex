@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add `sepmeta.ReadCustomSectionsAt`, which reads custom sections from an
+  `io.ReaderAt` without loading the module. It returns exactly what
+  `ReadCustomSections` returns for the same bytes, checked by a differential
+  test over every fixture and inside `FuzzReadCustomSections`. On a 1 MiB
+  module it allocates the requested payloads plus under 16 KiB (#62).
 - Report which SEP-41 version a Wasm's interface implements. `rules/history/` adds
   SEP-41 v0.1.0 and v0.3.0, each citing its stellar-protocol commit. Matches carry
   `matched_version` in the API and in the `wasm`, `contract` and `inspect` output.
