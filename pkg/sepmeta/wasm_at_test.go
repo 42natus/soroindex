@@ -122,7 +122,7 @@ func TestReadCustomSectionsAtMatchesReferenceOnCorpus(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, e := range entries {
-			b, err := os.ReadFile(filepath.Join(dir, e.Name())) // #nosec G304 -- corpus directory chosen by the developer
+			b, err := os.ReadFile(filepath.Join(dir, e.Name())) // #nosec G304 G703 -- corpus directory chosen by the developer
 			if err != nil {
 				t.Fatal(err)
 			}

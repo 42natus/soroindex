@@ -32,7 +32,7 @@ const conformanceDir = "../../testdata/conformance"
 
 // conformanceDifferences are the known, intentional differences. The keys
 // are the IDs used in docs/how-it-works.md.
-var conformanceDifferences = map[string]string{
+var conformanceDifferences = map[string]string{ // #nosec G101 -- difference IDs and prose, not credentials
 	"leading-zero":     "Python accepts 041 as 41 even in strict mode; sepmeta strict drops it",
 	"prefixed-token":   "Python skips SEP-41; sepmeta lenient reads it as 41 with an anomaly",
 	"unicode-digits":   "Python accepts non-ASCII decimal digits; sepmeta requires ASCII",

@@ -21,6 +21,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
@@ -186,10 +187,10 @@ func metaWasm(vec []byte) ([]byte, error) {
 // xdrString appends an XDR string: a big-endian u32 length, the bytes, and
 // zero padding to a multiple of four.
 func xdrString(b []byte, s string) []byte {
-	n := len(s)
-	b = append(b, byte(n>>24), byte(n>>16), byte(n>>8), byte(n))
+	n := uint32(len(s)) // #nosec G115 -- vector lines are far below 4 GiB
+	b = binary.BigEndian.AppendUint32(b, n)
 	b = append(b, s...)
-	return append(b, make([]byte, (4-n%4)%4)...)
+	return append(b, make([]byte, (4-len(s)%4)%4)...)
 }
 
 func leb(v int) []byte {

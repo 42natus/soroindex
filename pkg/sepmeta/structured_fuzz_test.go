@@ -53,6 +53,16 @@ func (c *choices) intn(n int) int {
 
 func (c *choices) bool() bool { return c.byte()&1 == 1 }
 
+// u32 is intn for XDR uint32 fields.
+func (c *choices) u32(n int) uint32 {
+	return uint32(c.intn(n)) // #nosec G115 -- intn returns [0, n) with n <= 65536
+}
+
+// i32 is intn for XDR enum fields.
+func (c *choices) i32(n int) int32 {
+	return int32(c.intn(n)) // #nosec G115 -- intn returns [0, n) with n <= 65536
+}
+
 // str returns a string of at most maxLen bytes. Most strings are short; one
 // choice in eight may use the full length, so streams can cross a size limit.
 // Bytes are arbitrary: XDR strings carry no encoding.
@@ -145,7 +155,7 @@ func (g *specGen) typ(depth int) (xdr.ScSpecTypeDef, string) {
 		}
 		return xdr.ScSpecTypeDef{Type: xdr.ScSpecTypeScSpecTypeTuple, Tuple: &xdr.ScSpecTypeTuple{ValueTypes: vals}}, "(" + strings.Join(names, ",") + ")"
 	case 5:
-		n := uint32(g.c.intn(65536))
+		n := g.c.u32(65536)
 		return xdr.ScSpecTypeDef{Type: xdr.ScSpecTypeScSpecTypeBytesN, BytesN: &xdr.ScSpecTypeBytesN{N: xdr.Uint32(n)}}, "BytesN<" + strconv.FormatUint(uint64(n), 10) + ">"
 	default:
 		name := g.c.str(60)
@@ -202,26 +212,26 @@ func (g *specGen) entries() ([]xdr.ScSpecEntry, []FnSig) {
 			if g.c.bool() {
 				e := xdr.ScSpecUdtEnumV0{Doc: g.c.str(1024), Lib: g.c.str(80), Name: g.c.str(60)}
 				for i := g.c.intn(6); i > 0; i-- {
-					e.Cases = append(e.Cases, xdr.ScSpecUdtEnumCaseV0{Doc: g.c.str(1024), Name: g.c.str(60), Value: xdr.Uint32(g.c.intn(65536))})
+					e.Cases = append(e.Cases, xdr.ScSpecUdtEnumCaseV0{Doc: g.c.str(1024), Name: g.c.str(60), Value: xdr.Uint32(g.c.u32(65536))})
 				}
 				out = append(out, xdr.ScSpecEntry{Kind: xdr.ScSpecEntryKindScSpecEntryUdtEnumV0, UdtEnumV0: &e})
 				continue
 			}
 			e := xdr.ScSpecUdtErrorEnumV0{Doc: g.c.str(1024), Lib: g.c.str(80), Name: g.c.str(60)}
 			for i := g.c.intn(6); i > 0; i-- {
-				e.Cases = append(e.Cases, xdr.ScSpecUdtErrorEnumCaseV0{Doc: g.c.str(1024), Name: g.c.str(60), Value: xdr.Uint32(g.c.intn(65536))})
+				e.Cases = append(e.Cases, xdr.ScSpecUdtErrorEnumCaseV0{Doc: g.c.str(1024), Name: g.c.str(60), Value: xdr.Uint32(g.c.u32(65536))})
 			}
 			out = append(out, xdr.ScSpecEntry{Kind: xdr.ScSpecEntryKindScSpecEntryUdtErrorEnumV0, UdtErrorEnumV0: &e})
 		default:
 			ev := xdr.ScSpecEventV0{Doc: g.c.str(1024), Lib: g.c.str(80), Name: g.c.str(60),
-				DataFormat: xdr.ScSpecEventDataFormat(g.c.intn(3))}
+				DataFormat: xdr.ScSpecEventDataFormat(g.c.i32(3))}
 			for i := g.c.intn(3); i > 0; i-- {
 				ev.PrefixTopics = append(ev.PrefixTopics, xdr.ScSymbol(g.c.str(32)))
 			}
 			for i := g.c.intn(5); i > 0; i-- {
 				t, _ := g.typ(0)
 				ev.Params = append(ev.Params, xdr.ScSpecEventParamV0{Doc: g.c.str(1024), Name: g.c.str(30), Type: t,
-					Location: xdr.ScSpecEventParamLocationV0(g.c.intn(2))})
+					Location: xdr.ScSpecEventParamLocationV0(g.c.i32(2))})
 			}
 			out = append(out, xdr.ScSpecEntry{Kind: xdr.ScSpecEntryKindScSpecEntryEventV0, EventV0: &ev})
 		}

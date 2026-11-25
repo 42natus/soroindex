@@ -221,9 +221,9 @@ func pct(got, limit int64) string {
 	return fmt.Sprintf("+%.1f%%", float64(got-limit)*100/float64(limit))
 }
 
-// headroom adds 10% to a measured value, at least min.
-func headroom(v, min int64) int64 {
-	return v + max((v+9)/10, min)
+// headroom adds 10% to a measured value, at least floor.
+func headroom(v, floor int64) int64 {
+	return v + max((v+9)/10, floor)
 }
 
 func formatBudgets(results []result) string {
@@ -246,10 +246,14 @@ func appendSummary(path string, results []result) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(f, "| Benchmark | ns/op | B/op | allocs/op |")
-	fmt.Fprintln(f, "| --- | ---: | ---: | ---: |")
+	var b strings.Builder
+	b.WriteString("| Benchmark | ns/op | B/op | allocs/op |\n| --- | ---: | ---: | ---: |\n")
 	for _, r := range results {
-		fmt.Fprintf(f, "| `%s` | %.0f | %d | %d |\n", r.Name, r.NsOp, r.BOp, r.Allocs)
+		fmt.Fprintf(&b, "| `%s` | %.0f | %d | %d |\n", r.Name, r.NsOp, r.BOp, r.Allocs)
+	}
+	if _, err := f.WriteString(b.String()); err != nil {
+		_ = f.Close() // the write error is the one to report
+		return err
 	}
 	return f.Close()
 }
